@@ -52,6 +52,6 @@ export const config = {
   },
 
   redis: {
-    URL: process.env.REDIS_URL || 'redis://default:6eIf1whBSZR8FwXz6SxKK5MpJhwXecVc@redis-15256.c270.us-east-1-3.ec2.redns.redis-cloud.com:15256',
+    URL: process.env.REDIS_URL || 'redis://127.0.0.1:6349',
   },
 };
