@@ -4,12 +4,11 @@ import cors from 'cors';
 import express, { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import rateLimiter from 'express-rate-limit';
-import sanitizeNosqlQuery from 'express-mongo-sanitize';
-import preventCrossSiteScripting from 'xss-clean';
 import preventParameterPollution from 'hpp';
 import requestIp from 'request-ip';
 import { UAParser } from 'ua-parser-js';
 import morgan from 'morgan';
+
 import errorHandler from './errors/errorHandler';
 import { NotFoundException } from './errors/exceptions/notFound';
 import { config } from './config/env';
@@ -17,10 +16,13 @@ import { config } from './config/env';
 import { BadRequestException } from './errors/exceptions/badRequest';
 import { logRequestAtStart, logRequest } from './middlewares/requestLogs';
 import en from './locale/en';
+import { ClassesService } from './services/sampleService';
+import { authRoutes } from './routes';
 
 
-
-const app = express();
+const app = express();;
+app.use(express.json({ limit: '20kb' }));
+app.use(express.urlencoded({ extended: true }));
 
 const whitelist = config.security.NO_CORS
   ? '*'
@@ -33,7 +35,6 @@ let options = {
   credentials: true,
 };
 
-app.enable('trust proxy');
 app.use(cors(options));
 
 app.use((req, res, next) => {
@@ -43,6 +44,7 @@ app.use((req, res, next) => {
   }
   next();
 });
+
 if (config.env !== 'test') {
   app.use(morgan('common'));
 }
@@ -58,12 +60,9 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: '20kb' }));
 app.use(cookieParser());
 
 
-app.use(sanitizeNosqlQuery());
-app.use(preventCrossSiteScripting())
 app.use(preventParameterPollution());
 
 app.use(compression());
@@ -93,10 +92,12 @@ app.use((req: any, res, next) => {
 
 const baseRoute = '/api/v1';
 
+app.use(baseRoute + '/auth', authRoutes);
 
 app.get(baseRoute + '/health', (req, res) => {
   res.send('OK');
 });
+
 
 app.use(logRequestAtStart);
 
@@ -111,7 +112,7 @@ app.use((req, res, next) => {
 
 app.use((err: Error & { type?: string }, req: Request, res: Response, next: NextFunction) => {
   if (err.type === 'entity.too.large') {
-    return next(new BadRequestException(en['request-body-too-large'], 413));
+    return next( new BadRequestException(en['request-body-too-large'], 413));
   }
   next(err);
 });

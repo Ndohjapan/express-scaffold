@@ -1,15 +1,14 @@
+import en from "../../locale/en";
 
 export class BadRequestException extends Error {
-  public status: number;
-  public error: Error;
+  statusCode: number;
+  error: Error;
 
-  constructor(message: string, status?: number, error?: Error) {
-    super(message);
+  constructor(message: string = en['bad-request-error'], statusCode?: number, error?: Error) {
+    super(message)
     this.name = 'BadRequestException';
-    this.status = status || 422;
+    this.statusCode = statusCode || 422;
     this.error = error || this;
-
-    // Ensure proper prototype chain for instanceof checks
-    Object.setPrototypeOf(this, BadRequestException.prototype);
   }
 }
+

@@ -19,6 +19,7 @@ mongoosePaginate.paginate.options = {
 
 async function connectToDatabase(DB_URL = config.database.URI) {
   try {
+    console.log('Connecting to Database...');
     const conn = await mongoose.connect(DB_URL);
     if (config.env != 'test') {
       console.log('Connected to Database successfully');

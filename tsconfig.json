@@ -10,10 +10,11 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "outDir": "dist",
+    "rootDir": ".",
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
     ]
   },
-  "include": ["src"]
+  "include": ["."]
 }

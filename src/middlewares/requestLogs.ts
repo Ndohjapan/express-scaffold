@@ -6,68 +6,50 @@ import RequestLogService from "../services/requestLogService";
 const service = new RequestLogService();
 
 export const logRequest = async (req: Request & { user?: { _id: string } }, res: Response) => {
-  /**
-   * Mask sensitive data in request body
-   */
-  if (req.body) {
-    if (Object.prototype.hasOwnProperty.call(req.body, 'newPassword')) {
-      req.body.new_password = 'string';
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, 'oldPassword')) {
-      req.body.old_password = 'string';
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, 'password')) {
-      req.body.password = 'string';
-    }
-  }
-
-  /**
-   * Remove sensitive headers
-   */
-  if (req.headers) {
-    if (Object.prototype.hasOwnProperty.call(req.headers, 'authorization')) {
-      delete req.headers.authorization;
-    }
-    if (Object.prototype.hasOwnProperty.call(req.headers, 'cookie')) {
-      delete req.headers.cookie;
-    }
-  }
-
-  /**
-   * Construct request data object
-   */
-  const request_data = {
-    req_http_version: req.httpVersion,
-    req_headers: req.headers,
-    req_method: req.method,
-    req_original_url: req.originalUrl,
-    req_params: req.params,
-    req_query: req.query,
-    req_body: req.body,
-    ...(req.headers ? { req_ip: req.headers['x-real-ip'] } : {}),
-    res_status: res.statusCode,
-    ...(req.user ? { user_id: req.user._id } : {}),
-  };
-
-  /**
-   * Save request log
-   */
   try {
+    // Mask sensitive data
+    const sanitizedBody = { ...req.body };
+    const sensitiveFields = ['newPassword', 'oldPassword', 'password'];
+    sensitiveFields.forEach(field => {
+      if (sanitizedBody[field]) sanitizedBody[field] = 'string';
+    });
+
+    // Remove sensitive headers
+    const sanitizedHeaders = { ...req.headers };
+    delete sanitizedHeaders.authorization;
+    delete sanitizedHeaders.cookie;
+
+    // Construct request data
+    const request_data = {
+      reqHttpVersion: req.httpVersion,
+      reqHeaders: sanitizedHeaders,
+      reqMethod: req.method,
+      reqOriginalUrl: req.originalUrl,
+      reqParams: JSON.stringify(req.params),
+      reqQuery: JSON.stringify(req.query),
+      reqBody: sanitizedBody,
+      statusCode: res.statusCode,
+      reqIp: req.headers['x-real-ip']?.toString(),
+      userId: req.user?._id
+    };
+
     await service.CreateRequestLog(request_data);
   } catch (error) {
+    console.error('Request Logging Middleware Error:', error);
     rollbar.log(error as Error, req, { level: 'error' }, en['database-request-log']);
-
-    console.log(error);
   }
 };
 
-export const logRequestAtStart = async (req: Request, res: Response, next: NextFunction) => {
+export const logRequestAtStart = async (
+  req: Request & { user?: { _id: string } }, 
+  res: Response, 
+  next: NextFunction
+) => {
   try {
     await logRequest(req, res);
-    return next();
   } catch (error) {
+    console.error('Request Logging Middleware Error:', error);
     rollbar.log(error as Error, req, { level: 'error' }, en['database-request-log']);
-    console.log(error);
-    return next();
   }
+  next();
 };
